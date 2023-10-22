@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufRead, BufReader},
+    io::{stdout, BufRead, BufReader, Write},
 };
 
 use anyhow::Context;
@@ -25,6 +25,10 @@ where
     let eval = AstEvaluator::new();
 
     let mut s = String::new();
+    if !cli.quiet {
+        print!("> ");
+        stdout().flush()?;
+    }
     for line in buf.lines() {
         let line = line.unwrap();
 
@@ -40,21 +44,38 @@ where
             &s
         };
 
+        if !cli.quiet {
+            match cli.content_source()? {
+                ContentSource::File(_) => println!("{}", line),
+                ContentSource::Arg(_) => println!("{}", line),
+                ContentSource::Stdin => {}
+            }
+        }
+
         let statement = line.parse()?;
 
         s.clear();
 
+        let result = eval.eval(&statement)?;
+
         if !cli.quiet {
             print!("{} = ", statement);
         }
-
-        let result = eval.eval(&statement)?;
 
         match cli.output_format() {
             lexer::NumberKind::Dec => println!("{}", result),
             lexer::NumberKind::Hex => println!("{}", result.to_string_radix::<16>()),
             lexer::NumberKind::Bin => println!("{}", result.to_string_radix::<2>()),
         };
+
+        if !cli.quiet {
+            print!("> ");
+        }
+
+        stdout().flush()?;
+    }
+    if !cli.quiet {
+        println!("EOF");
     }
 
     Ok(())
