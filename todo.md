@@ -8,7 +8,7 @@
 - [x] The ability to customise the format of output:
     - `-x` for hex
     - `-b` for bin
-- [ ] Add support for decimal numbers in the input (will require rework
+- [ ] Add support for numbers with a fraction (`1.5`) in the input (will require rework
   of the lexer's lexing of numbers)
 - [ ] Highlight the token upon error
     - This will require us to pass `TokenSpan` when we parse the tokens
