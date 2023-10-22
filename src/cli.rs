@@ -3,16 +3,17 @@ use std::path::PathBuf;
 
 use super::ast::lexer::NumberKind;
 
-/// `maths` is a tool to do simple mathematics from the commandline without needing to know
-/// anything fancy
+/// Just Another CLI Calculator
+///
+/// `jacc` is a tool to do simple mathematics from the commandline with ease
 ///
 /// One can run in three ways:
 ///
-/// - using an argument: `maths '1 + 2 * 3'`
+/// - using an argument: `jacc '1 + 2 * 3'`
 ///
-/// - by passing a file: `maths -f my_maths.txt`
+/// - by passing a file: `jacc -f my_maths.txt`
 ///
-/// - or by using the stdin: `echo '1 + 2 * 3' | maths`
+/// - or by using the stdin: `echo '1 + 2 * 3' | jacc`
 #[derive(Clone, Debug, Parser)]
 #[command(author, version, about, long_about)]
 pub struct Cli {
