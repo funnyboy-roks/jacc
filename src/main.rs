@@ -4,7 +4,6 @@ use std::{
 };
 
 use anyhow::Context;
-use ast::lexer::Lexer;
 use clap::Parser;
 use cli::{Cli, ContentSource};
 
@@ -14,7 +13,7 @@ mod ast;
 mod cli;
 mod format;
 
-use format::{ToBin, ToHex};
+use format::ToStringRadix;
 
 #[cfg(test)]
 mod test;
@@ -53,8 +52,8 @@ where
 
         match cli.output_format() {
             lexer::NumberKind::Dec => println!("{}", result),
-            lexer::NumberKind::Hex => println!("{}", result.to_hex()),
-            lexer::NumberKind::Bin => println!("{}", result.to_bin()),
+            lexer::NumberKind::Hex => println!("{}", result.to_string_radix::<16>()),
+            lexer::NumberKind::Bin => println!("{}", result.to_string_radix::<2>()),
         };
     }
 
