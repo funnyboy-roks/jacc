@@ -1,11 +1,11 @@
 # To-Do
 
-- [ ] Add clap for some command-line shenanigans
-- [ ] Read from file, STDIN, or command-line argument
-    - [ ] Each line should be interpreted as its own statement, unless
+- [x] Add clap for some command-line shenanigans
+- [x] Read from file, STDIN, or command-line argument
+    - [x] Each line should be interpreted as its own statement, unless
       the line ends with a `\`, in which case, it would just concatenate
       with the line below.
-- [ ] The ability to customise the format of output:
+- [x] The ability to customise the format of output:
     - `-x` for hex
     - `-b` for bin
 - [ ] Add support for decimal numbers in the input (will require rework
