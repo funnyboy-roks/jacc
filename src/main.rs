@@ -16,7 +16,7 @@ mod format;
 
 use format::{ToBin, ToHex};
 
-#[macro_use]
+#[cfg(test)]
 mod test;
 
 fn run_from_reader<R>(cli: &Cli, buf: R) -> anyhow::Result<()>

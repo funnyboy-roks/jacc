@@ -182,3 +182,37 @@ fn string_to_ast_hard() {
 
     assert_eq!(parsed, expected);
 }
+
+#[test]
+fn functions() {
+    let eval = AstEvaluator::new();
+    macro_rules! test_fn {
+        ($name: ident($($a: expr),*), $str: literal, $expected: expr) => {
+            let parsed: AstStatement = $str.parse().unwrap();
+            let f = expr!(fun!($name($($a),*)));
+            assert_eq!(parsed, *f);
+            let res = eval.eval(&parsed).unwrap();
+            assert_eq!(res, $expected);
+        };
+    }
+
+    use std::f64::consts;
+
+    test_fn!(
+        sin(expr!(num!(3.0), op!(Multiply), var!(pi))),
+        "sin(3 * pi)",
+        f64::sin(3.0 * consts::PI)
+    );
+
+    test_fn!(
+        round(expr!(num!(7.0), op!(Divide), num!(3.0))),
+        "round(7 / 3)", // TODO: fractions in input
+        f64::round(7.0 / 3.0)
+    );
+
+    test_fn!(
+        log_7(expr!(num!(7.0), op!(Exponent), num!(6.0))),
+        "log_7(7 ** 6)", // TODO: fractions in input
+        6.0
+    );
+}
