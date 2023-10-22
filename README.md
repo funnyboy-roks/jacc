@@ -10,7 +10,7 @@ one should already know, plus a few extra for ease:
 | -------- | ----------- |
 | `^`      | xor         |
 | `&`      | bitwise and |
-| `\\|`    | bitwise or  |
+| `\|`     | bitwise or  |
 | `**`     | exponent    |
 
 In addition to these operators, there are a few functions built in, most
