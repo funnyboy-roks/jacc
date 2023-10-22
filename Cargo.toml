@@ -3,8 +3,10 @@ name = "jacc"
 version = "0.1.0"
 edition = "2021"
 authors = ["funnyboy_roks <funnyboyroks@gmail.com>"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Just another cli calculator: A maths interpreter for the command-line"
+homepage = "https://github.com/funnyboy-roks/jacc"
+repository = "https://github.com/funnyboy-roks/jacc"
+license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.75"
