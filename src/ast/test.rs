@@ -1,4 +1,4 @@
-use super::*;
+use super::{lexer::*, *};
 
 #[test]
 fn infix_to_postfix() {

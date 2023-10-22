@@ -41,11 +41,9 @@ where
             &s
         };
 
-        let lex = Lexer::new(line);
+        let statement = line.parse()?;
 
         s.clear();
-
-        let statement = infix_expr_from_tokens(&lex.collect())?;
 
         if !cli.quiet {
             print!("{} = ", statement);

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 use anyhow::{bail, ensure, Context};
 
@@ -6,7 +6,7 @@ pub mod functions;
 pub mod lexer;
 pub mod op;
 
-use lexer::{Token, TokenKind};
+use lexer::{Lexer, Token, TokenKind};
 use op::Operator;
 
 #[cfg(test)]
@@ -77,6 +77,102 @@ impl AstStatement {
             _ => unreachable!(),
         }
     }
+
+    fn consume_function(
+        ident: String,
+        tokens: &Vec<Token>,
+        i: &mut usize,
+    ) -> anyhow::Result<AstStatement> {
+        let mut args = Vec::new(); // All args for this function
+        let mut curr_arg = Vec::new(); // the tokens in the current arg
+        let mut depth = 0; // Paren depth -- 0 for same level as function
+        while let Some(tok) = tokens.get(*i) {
+            match tok.kind {
+                TokenKind::RightParen if depth == 0 => {
+                    args.push(Box::new(Self::infix_expr_from_tokens(&curr_arg)?));
+                    return Ok(AstStatement::FunctionCall {
+                        name: ident,
+                        params: args,
+                    });
+                }
+                TokenKind::RightParen => {
+                    depth -= 1;
+                    curr_arg.push(tok.clone());
+                }
+                TokenKind::LeftParen => {
+                    depth += 1;
+                    curr_arg.push(tok.clone());
+                }
+                TokenKind::Comma => {
+                    args.push(Box::new(Self::infix_expr_from_tokens(&curr_arg)?));
+                    curr_arg.clear();
+                }
+                TokenKind::Eof => bail!("Expected RightParen, found EOF"),
+
+                _ => curr_arg.push(tok.clone()),
+            }
+            *i += 1;
+        }
+        todo!()
+    }
+
+    fn infix_expr_from_tokens(tokens: &Vec<Token>) -> anyhow::Result<AstStatement> {
+        let mut stmts = Vec::new();
+        let mut i = 0;
+        while i < tokens.len() {
+            let tok = &tokens[i];
+            stmts.push(Box::new(match &tok.kind {
+                TokenKind::Number(n, _) => AstStatement::Number(*n),
+                TokenKind::Ident(ident) => match tokens.get(i + 1).map(|t| &t.kind) {
+                    Some(TokenKind::LeftParen) => {
+                        i += 2; // skip the ident and the paren
+                        Self::consume_function(ident.into(), tokens, &mut i)
+                            .with_context(|| format!("parsing function: {}", ident))?
+                    }
+                    _ => AstStatement::Variable(ident.into()),
+                },
+
+                TokenKind::Plus => Operator::Add.into(),
+                TokenKind::Minus => Operator::Subtract.into(),
+                TokenKind::Asterisk => Operator::Multiply.into(),
+                TokenKind::Slash => Operator::Divide.into(),
+                TokenKind::Percent => Operator::Modulo.into(),
+
+                TokenKind::Exponent => Operator::Exponent.into(),
+                TokenKind::Carrot => Operator::Xor.into(),
+                TokenKind::Ampersand => Operator::BitAnd.into(),
+                TokenKind::Pipe => Operator::BitOr.into(),
+
+                TokenKind::Comma => bail!("Unexpected token: ','"),
+
+                TokenKind::LeftParen => Operator::LeftParen.into(),
+                TokenKind::RightParen => Operator::RightParen.into(),
+
+                TokenKind::LeftCurlyBracket => bail!("Unexpected token: '{{'"),
+                TokenKind::RightCurlyBracket => bail!("Unexpected token: '}}'"),
+                TokenKind::LeftSquareBracket => bail!("Unexpected token: '['"),
+                TokenKind::RightSquareBrace => bail!("Unexpected token: ']'"),
+
+                TokenKind::Newline => continue,
+
+                TokenKind::Let => unimplemented!(),
+
+                TokenKind::Eof => break, //bail!("Expected token, found EOF"),
+                TokenKind::Invalid => bail!("Found invalid token"),
+            }));
+            i += 1;
+        }
+        Ok(AstStatement::InfixExpression(stmts))
+    }
+}
+
+impl FromStr for AstStatement {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let lexer = Lexer::new(s);
+        Self::infix_expr_from_tokens(&lexer.collect())
+    }
 }
 
 impl From<f64> for AstStatement {
@@ -88,7 +184,7 @@ impl From<f64> for AstStatement {
 pub struct AstEvaluator {
     pub variable_map: HashMap<String, f64>,
     pub const_map: HashMap<&'static str, f64>,
-    known_functions:
+    pub known_functions:
         HashMap<String, Box<dyn Fn(&AstEvaluator, Vec<AstStatement>) -> anyhow::Result<f64>>>,
 }
 
@@ -177,7 +273,7 @@ impl AstEvaluator {
     }
 
     /// Convert a infix expression into postfix notation in order to evaluate it more easily
-    fn infix_to_postfix(expr: &Vec<Box<AstStatement>>) -> anyhow::Result<Vec<AstStatement>> {
+    pub fn infix_to_postfix(expr: &Vec<Box<AstStatement>>) -> anyhow::Result<Vec<AstStatement>> {
         let mut out = Vec::new();
         let mut ops = Vec::new();
 
@@ -262,91 +358,4 @@ impl AstEvaluator {
 
         bail!("Unknown function: '{}'", name)
     }
-}
-
-fn consume_function(
-    ident: String,
-    tokens: &Vec<Token>,
-    i: &mut usize,
-) -> anyhow::Result<AstStatement> {
-    let mut args = Vec::new(); // All args for this function
-    let mut curr_arg = Vec::new(); // the tokens in the current arg
-    let mut depth = 0; // Paren depth -- 0 for same level as function
-    while let Some(tok) = tokens.get(*i) {
-        match tok.kind {
-            TokenKind::RightParen if depth == 0 => {
-                args.push(Box::new(infix_expr_from_tokens(&curr_arg)?));
-                return Ok(AstStatement::FunctionCall {
-                    name: ident,
-                    params: args,
-                });
-            }
-            TokenKind::RightParen => {
-                depth -= 1;
-                curr_arg.push(tok.clone());
-            }
-            TokenKind::LeftParen => {
-                depth += 1;
-                curr_arg.push(tok.clone());
-            }
-            TokenKind::Comma => {
-                args.push(Box::new(infix_expr_from_tokens(&curr_arg)?));
-                curr_arg.clear();
-            }
-            TokenKind::Eof => bail!("Expected RightParen, found EOF"),
-
-            _ => curr_arg.push(tok.clone()),
-        }
-        *i += 1;
-    }
-    todo!()
-}
-
-pub fn infix_expr_from_tokens(tokens: &Vec<Token>) -> anyhow::Result<AstStatement> {
-    let mut stmts = Vec::new();
-    let mut i = 0;
-    while i < tokens.len() {
-        let tok = &tokens[i];
-        stmts.push(Box::new(match &tok.kind {
-            TokenKind::Number(n, _) => AstStatement::Number(*n),
-            TokenKind::Ident(ident) => match tokens.get(i + 1).map(|t| &t.kind) {
-                Some(TokenKind::LeftParen) => {
-                    i += 2; // skip the ident and the paren
-                    consume_function(ident.into(), tokens, &mut i)
-                        .with_context(|| format!("parsing function: {}", ident))?
-                }
-                _ => AstStatement::Variable(ident.into()),
-            },
-
-            TokenKind::Plus => Operator::Add.into(),
-            TokenKind::Minus => Operator::Subtract.into(),
-            TokenKind::Asterisk => Operator::Multiply.into(),
-            TokenKind::Slash => Operator::Divide.into(),
-            TokenKind::Percent => Operator::Modulo.into(),
-
-            TokenKind::Exponent => Operator::Exponent.into(),
-            TokenKind::Carrot => Operator::Xor.into(),
-            TokenKind::Ampersand => Operator::BitAnd.into(),
-            TokenKind::Pipe => Operator::BitOr.into(),
-
-            TokenKind::Comma => bail!("Unexpected token: ','"),
-
-            TokenKind::LeftParen => Operator::LeftParen.into(),
-            TokenKind::RightParen => Operator::RightParen.into(),
-
-            TokenKind::LeftCurlyBracket => bail!("Unexpected token: '{{'"),
-            TokenKind::RightCurlyBracket => bail!("Unexpected token: '}}'"),
-            TokenKind::LeftSquareBracket => bail!("Unexpected token: '['"),
-            TokenKind::RightSquareBrace => bail!("Unexpected token: ']'"),
-
-            TokenKind::Newline => continue,
-
-            TokenKind::Let => unimplemented!(),
-
-            TokenKind::Eof => break, //bail!("Expected token, found EOF"),
-            TokenKind::Invalid => bail!("Found invalid token"),
-        }));
-        i += 1;
-    }
-    Ok(AstStatement::InfixExpression(stmts))
 }
