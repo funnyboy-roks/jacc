@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    fmt::Display,
-};
+use std::{collections::HashMap, fmt::Display};
 
 use anyhow::{bail, ensure, Context};
 
@@ -9,9 +6,8 @@ pub mod functions;
 pub mod lexer;
 pub mod op;
 
+use lexer::{Token, TokenKind};
 use op::Operator;
-
-use self::lexer::{Lexer, Token, TokenKind};
 
 #[cfg(test)]
 mod test;
@@ -71,7 +67,7 @@ impl AstStatement {
             AstStatement::Variable(_) => true,
             AstStatement::InfixExpression(_) => false,
             AstStatement::Operator(_) => false,
-            AstStatement::FunctionCall { name, params } => true,
+            AstStatement::FunctionCall { .. } => true,
         }
     }
 
@@ -146,8 +142,6 @@ impl AstEvaluator {
         let pf = AstEvaluator::infix_to_postfix(&expr)
             .context("Converting infix expression to postfix")?;
 
-        dbg!(&pf); // TODO: Remove me
-
         // Evaluate the postfix
 
         // The stack will probably not actually grow to the length, but this is the max size that's
@@ -159,7 +153,6 @@ impl AstEvaluator {
                 s.push(tok);
             } else {
                 // Pop the items from the stack (order matters)
-                dbg!(&s);
                 let b = s.pop().context("Missing items from postfix eval stack")?;
                 let a = s.pop().context("Missing items from postfix eval stack")?;
 
@@ -190,14 +183,9 @@ impl AstEvaluator {
 
         for tok in expr {
             let tok = tok.as_ref().clone();
-            eprintln!("ops = {:?}", ops);
-            eprintln!("tok = {:?}", tok);
             match tok {
                 AstStatement::Operator(Operator::RightParen) => {
-                    eprintln!("    right paren");
-                    eprintln!("    ops = {:?}", ops);
                     while ops.last() != Some(&Operator::LeftParen) {
-                        eprintln!("    adding op = {:?}", ops.last().unwrap());
                         out.push(ops.pop().context("Expected operator, found EOF")?.into());
                     }
                     ops.pop();
@@ -206,26 +194,18 @@ impl AstEvaluator {
                     ops.push(Operator::LeftParen);
                 }
                 AstStatement::Operator(tok) => {
-                    eprintln!("    add operator");
-                    if let Some(op) = ops.last() {
-                        eprintln!("    {:?}.prec = {}", tok, tok.prec());
-                        eprintln!("    {:?}.prec = {}", op, op.prec());
-                        while !ops.is_empty() && tok.prec() <= ops.last().unwrap().prec() {
-                            let o = ops.pop().unwrap();
-                            eprintln!("        adding op = {}", o);
-                            out.push(o.into());
-                        }
+                    while !ops.is_empty() && tok.prec() <= ops.last().unwrap().prec() {
+                        let o = ops.pop().unwrap();
+                        out.push(o.into());
                     }
                     ops.push(tok)
                 }
                 _ => {
-                    eprintln!("    add operand");
                     out.push(tok);
                 }
             }
         }
 
-        eprintln!("final state of ops = {:?}", ops);
         // return the postfix queue and add on the remaining operators
         Ok(out
             .into_iter()

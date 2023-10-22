@@ -1,4 +1,4 @@
-use anyhow::{bail, ensure};
+use anyhow::ensure;
 use std::collections::HashMap;
 
 use super::{AstEvaluator, AstStatement};

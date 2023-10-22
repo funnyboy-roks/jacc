@@ -1,9 +1,7 @@
+use clap::Parser;
 use std::path::PathBuf;
 
-use anyhow::{bail, ensure};
-use clap::Parser;
-
-use crate::ast::lexer::NumberKind;
+use super::ast::lexer::NumberKind;
 
 /// `maths` is a tool to do simple mathematics from the commandline without needing to know
 /// anything fancy
