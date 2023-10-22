@@ -276,7 +276,7 @@ impl Lexer {
             let start = self.index;
             let mut name = String::new();
             match c {
-                'a'..='z' | 'A'..='Z' => {
+                '_' | 'a'..='z' | 'A'..='Z' => {
                     self.take_char();
                     name.push(c);
                     while let Some(c) = self.current_char() {
@@ -400,7 +400,7 @@ impl Iterator for Lexer {
                         (None, Some(dbg!(TokenKind::Invalid)))
                     }
                 }
-                Some('a'..='z' | 'A'..='Z') => {
+                Some('_' | 'a'..='z' | 'A'..='Z') => {
                     if let Some(n) = self.consume_ident() {
                         (Some(n), None)
                     } else {

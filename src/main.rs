@@ -22,7 +22,7 @@ fn run_from_reader<R>(cli: &Cli, buf: R) -> anyhow::Result<()>
 where
     R: BufRead,
 {
-    let eval = AstEvaluator::new();
+    let mut eval = AstEvaluator::new();
 
     let mut s = String::new();
     if !cli.quiet {
@@ -57,6 +57,8 @@ where
         s.clear();
 
         let result = eval.eval(&statement)?;
+
+        eval.variable_map.insert("_".into(), result);
 
         if !cli.quiet {
             print!("{} = ", statement);
