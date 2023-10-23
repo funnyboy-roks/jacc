@@ -2,38 +2,34 @@ use super::ast::*;
 
 macro_rules! var {
     ($name: ident) => {
-        Box::new($crate::ast::AstStatement::Variable(
-            stringify!($name).into(),
-        ))
+        $crate::ast::AstStatement::Variable(stringify!($name).into())
     };
 }
 
 macro_rules! num {
     ($n: literal) => {
-        Box::new($crate::ast::AstStatement::Number($n))
+        $crate::ast::AstStatement::Number($n)
     };
 }
 
 macro_rules! op {
     ($o: ident) => {
-        Box::new($crate::ast::AstStatement::Operator(
-            $crate::ast::op::Operator::$o,
-        ))
+        crate::ast::AstStatement::Operator($crate::ast::op::Operator::$o)
     };
 }
 
 macro_rules! expr {
     ($($a: expr),*) => {
-        Box::new($crate::ast::AstStatement::InfixExpression(vec![$($a),*]))
+        crate::ast::AstStatement::InfixExpression(vec![$($a),*])
     }
 }
 
 macro_rules! fun {
     ($name: ident ($($a: expr),*)) => {
-        Box::new($crate::ast::AstStatement::FunctionCall {
+        crate::ast::AstStatement::FunctionCall {
             name: stringify!($name).into(),
             params: vec![$($a),*],
-        })
+        }
     };
 }
 
@@ -56,9 +52,6 @@ fn infix_postfix() {
     assert_eq!(
         pf,
         vec![num!(1.0), num!(2.0), num!(3.0), op!(Add), op!(Multiply),]
-            .into_iter()
-            .map(|x| *x)
-            .collect::<Vec<_>>()
     );
 
     let res = eval
@@ -117,10 +110,7 @@ fn infix_postfix_hard() {
         op!(Add),
         num!(9.0),
         op!(Subtract),
-    ]
-    .into_iter()
-    .map(|x| *x)
-    .collect::<Vec<_>>();
+    ];
     assert_eq!(pf, expected);
 
     let res = eval
@@ -137,7 +127,7 @@ fn infix_postfix_hard() {
 fn string_to_ast() {
     let parsed: AstStatement = "1 * (2 + 3)".parse().unwrap();
 
-    let expected = *expr![
+    let expected = expr![
         num!(1.0),
         op!(Multiply),
         op!(LeftParen),
@@ -156,7 +146,7 @@ fn string_to_ast_hard() {
         .parse()
         .unwrap();
 
-    let expected = *expr![
+    let expected = expr![
         num!(1.0),
         op!(Add),
         num!(2.0),
@@ -190,7 +180,7 @@ fn functions() {
         ($name: ident($($a: expr),*), $str: literal, $expected: expr) => {
             let parsed: AstStatement = $str.parse().unwrap();
             let f = expr!(fun!($name($($a),*)));
-            assert_eq!(parsed, *f);
+            assert_eq!(parsed, f);
             let res = eval.eval(&parsed).unwrap();
             assert_eq!(res, $expected);
         };

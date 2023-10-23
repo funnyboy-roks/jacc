@@ -8,10 +8,7 @@ fn infix_to_postfix() {
         AstStatement::Variable("b".into()),
         AstStatement::Operator(Operator::Multiply),
         AstStatement::Variable("c".into()),
-    ]
-    .into_iter()
-    .map(Box::new)
-    .collect();
+    ];
 
     let out = AstEvaluator::infix_to_postfix(&expr);
     assert_eq!(
@@ -34,10 +31,7 @@ fn eval_infix() {
         AstStatement::Variable("b".into()),
         AstStatement::Operator(Operator::Multiply),
         AstStatement::Variable("c".into()),
-    ]
-    .into_iter()
-    .map(Box::new)
-    .collect();
+    ];
 
     let mut vars = HashMap::new();
     let a = 2.0;
