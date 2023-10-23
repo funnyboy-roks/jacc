@@ -37,7 +37,7 @@ impl NumberKind {
 
     /// Check if a char is a valid digit for this radix
     pub fn is_valid_digit(&self, c: char) -> bool {
-        c.is_digit(self.radix() as u32)
+        c.is_digit(self.radix())
     }
 }
 
@@ -176,20 +176,18 @@ impl Lexer {
 
     /// Consume one number from the input and return it as an f64 and NumberKind
     fn take_num(&mut self) -> Option<(f64, NumberKind)> {
-        let lead_digit;
-
         // Match the first digit
         let Some(c) = self.current_char() else {
             return None;
         };
 
         //eprintln!("lead digit: '{}'", c);
-        if c.is_digit(10) {
-            lead_digit = c;
+        let lead_digit = if c.is_ascii_digit() {
+            c
         } else {
             //eprintln!("No lead digit");
             return None;
-        }
+        };
 
         let mut kind = NumberKind::Dec;
         let mut number: f64 = 0.0;

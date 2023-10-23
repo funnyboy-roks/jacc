@@ -47,11 +47,11 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn content_source<'a>(&'a self) -> anyhow::Result<ContentSource<'a>> {
+    pub fn content_source(&self) -> anyhow::Result<ContentSource<'_>> {
         Ok(match (&self.file, &self.content) {
             (None, None) => ContentSource::Stdin,
-            (None, Some(content)) => ContentSource::Arg(&content),
-            (Some(file), None) => ContentSource::File(&file),
+            (None, Some(content)) => ContentSource::Arg(content),
+            (Some(file), None) => ContentSource::File(file),
             (Some(_), Some(_)) => unreachable!("clap handles conflict"),
         })
     }

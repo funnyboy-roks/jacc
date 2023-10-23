@@ -3,13 +3,12 @@ use std::collections::HashMap;
 
 use super::{AstEvaluator, AstStatement};
 
+pub type FnMap =
+    HashMap<String, Box<dyn Fn(&AstEvaluator, Vec<AstStatement>) -> anyhow::Result<f64>>>;
+
 // This function signature is awful
-pub fn default_functions(
-) -> HashMap<String, Box<dyn Fn(&AstEvaluator, Vec<AstStatement>) -> anyhow::Result<f64>>> {
-    let mut map: HashMap<
-        String,
-        Box<dyn Fn(&AstEvaluator, Vec<AstStatement>) -> anyhow::Result<f64>>,
-    > = HashMap::new();
+pub fn default_functions() -> FnMap {
+    let mut map: FnMap = HashMap::new();
 
     macro_rules! def_fn {
         ($name: ident = |$expr: ident, $args: ident| $body: block) => {

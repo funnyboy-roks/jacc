@@ -93,9 +93,9 @@ impl Operator {
     }
 }
 
-impl Into<AstStatement> for Operator {
-    fn into(self) -> AstStatement {
-        AstStatement::Operator(self)
+impl From<Operator> for AstStatement {
+    fn from(op: Operator) -> AstStatement {
+        AstStatement::Operator(op)
     }
 }
 

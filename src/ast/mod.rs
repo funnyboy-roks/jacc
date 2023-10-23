@@ -21,13 +21,13 @@ pub enum AstStatement {
     /// A maths expression using Infix Notation (a + b) -- for evaluation, this gets convert to
     /// postfix (a b +)
     /// Technically `InfixExpression(vec![InfixExpression])` is invalid.
-    InfixExpression(Vec<Box<AstStatement>>),
+    InfixExpression(Vec<AstStatement>),
     Operator(Operator),
     /// A call to a built-in function
     /// All params should be evaluated before the function is called
     FunctionCall {
         name: String,
-        params: Vec<Box<AstStatement>>,
+        params: Vec<AstStatement>,
     },
 }
 
@@ -80,7 +80,7 @@ impl AstStatement {
 
     fn consume_function(
         ident: String,
-        tokens: &Vec<Token>,
+        tokens: &[Token],
         i: &mut usize,
     ) -> anyhow::Result<AstStatement> {
         let mut args = Vec::new(); // All args for this function
@@ -89,7 +89,7 @@ impl AstStatement {
         while let Some(tok) = tokens.get(*i) {
             match tok.kind {
                 TokenKind::RightParen if depth == 0 => {
-                    args.push(Box::new(Self::infix_expr_from_tokens(&curr_arg)?));
+                    args.push(Self::infix_expr_from_tokens(&curr_arg)?);
                     return Ok(AstStatement::FunctionCall {
                         name: ident,
                         params: args,
@@ -104,7 +104,7 @@ impl AstStatement {
                     curr_arg.push(tok.clone());
                 }
                 TokenKind::Comma => {
-                    args.push(Box::new(Self::infix_expr_from_tokens(&curr_arg)?));
+                    args.push(Self::infix_expr_from_tokens(&curr_arg)?);
                     curr_arg.clear();
                 }
                 TokenKind::Eof => bail!("Expected RightParen, found EOF"),
@@ -121,7 +121,7 @@ impl AstStatement {
         let mut i = 0;
         while i < tokens.len() {
             let tok = &tokens[i];
-            stmts.push(Box::new(match &tok.kind {
+            stmts.push(match &tok.kind {
                 TokenKind::Number(n, _) => AstStatement::Number(*n),
                 TokenKind::Ident(ident) => match tokens.get(i + 1).map(|t| &t.kind) {
                     Some(TokenKind::LeftParen) => {
@@ -159,7 +159,7 @@ impl AstStatement {
 
                 TokenKind::Eof => break, //bail!("Expected token, found EOF"),
                 TokenKind::Invalid => bail!("Found invalid token"),
-            }));
+            });
             i += 1;
         }
         Ok(AstStatement::InfixExpression(stmts))
@@ -184,8 +184,7 @@ impl From<f64> for AstStatement {
 pub struct AstEvaluator {
     pub variable_map: HashMap<String, f64>,
     pub const_map: HashMap<&'static str, f64>,
-    pub known_functions:
-        HashMap<String, Box<dyn Fn(&AstEvaluator, Vec<AstStatement>) -> anyhow::Result<f64>>>,
+    pub known_functions: functions::FnMap,
 }
 
 impl AstEvaluator {
@@ -217,7 +216,7 @@ impl AstEvaluator {
                 ref name,
                 ref params,
             } => self
-                .eval_function(name, params.iter().map(|e| e.as_ref().clone()).collect())
+                .eval_function(name, params.to_vec())
                 .with_context(|| format!("Evaluating function: '{}'", statement))?,
             AstStatement::Operator(o) => bail!("Expected expression, found {:?}", o),
         })
@@ -233,9 +232,9 @@ impl AstEvaluator {
     }
 
     /// Evaluate an infix expression by converting it to postfix and evaluating it
-    fn eval_infix(&self, expr: &Vec<Box<AstStatement>>) -> anyhow::Result<f64> {
+    fn eval_infix(&self, expr: &Vec<AstStatement>) -> anyhow::Result<f64> {
         // Convert the infix expression to postfix
-        let pf = AstEvaluator::infix_to_postfix(&expr)
+        let pf = AstEvaluator::infix_to_postfix(expr)
             .context("Converting infix expression to postfix")?;
 
         // Evaluate the postfix
@@ -273,12 +272,12 @@ impl AstEvaluator {
     }
 
     /// Convert a infix expression into postfix notation in order to evaluate it more easily
-    pub fn infix_to_postfix(expr: &Vec<Box<AstStatement>>) -> anyhow::Result<Vec<AstStatement>> {
+    pub fn infix_to_postfix(expr: &Vec<AstStatement>) -> anyhow::Result<Vec<AstStatement>> {
         let mut out = Vec::new();
         let mut ops = Vec::new();
 
         for tok in expr {
-            let tok = tok.as_ref().clone();
+            let tok = tok.clone();
             match tok {
                 AstStatement::Operator(Operator::RightParen) => {
                     while ops.last() != Some(&Operator::LeftParen) {
