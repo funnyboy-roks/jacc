@@ -56,7 +56,15 @@ where
 
         s.clear();
 
-        let result = eval.eval(&statement)?;
+        let result = match eval.eval(&statement) {
+            Ok(r) => r,
+            Err(e) => {
+                println!("Error evaluating equation: {:?}", e);
+                print!("> ");
+                stdout().flush()?;
+                continue;
+            }
+        };
 
         eval.variable_map.insert("_".into(), result);
 
