@@ -28,3 +28,4 @@ of them should be obvious by name:
 | `sqrt(x)`/`cbrt(x)`              | Find the square or cube root of `x`        |
 | `floor(x)`/`ceil(x)`/`round(x)`  | floor/ceil/round `x`                       |
 | `abs(x)`                         | Find the absolute value of `x`             |
+| `gcd(a, b, c, ...)`              | Find the gcd of `a`, `b`, `c`, ...         |
