@@ -202,7 +202,13 @@ fn functions() {
 
     test_fn!(
         log_7(expr!(num!(7.0), op!(Exponent), num!(6.0))),
-        "log_7(7 ** 6)", // TODO: fractions in input
+        "log_7(7 ** 6)",
         6.0
+    );
+
+    test_fn!(
+        gcd(expr!(num!(3.0)), expr!(num!(6.0)), expr!(num!(54.0))),
+        "gcd(3, 6, 54)",
+        3.0
     );
 }

@@ -59,5 +59,28 @@ pub fn default_functions() -> FnMap {
     def_fn!(round);
     def_fn!(abs);
 
+    def_fn!(
+        gcd = |expr, args| {
+            let mut args = args.iter().map(|a| expr.eval(a));
+            let mut r = args.next().unwrap()?;
+            for n in args {
+                r = gcd(r, n?);
+            }
+            Ok(r)
+        }
+    );
+
     map
+}
+
+fn gcd(mut a: f64, mut b: f64) -> f64 {
+    if a == 0.0 {
+        return b;
+    }
+    while b > 0.0 {
+        let r = a % b;
+        a = b;
+        b = r;
+    }
+    return a;
 }
