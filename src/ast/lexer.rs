@@ -19,25 +19,28 @@ impl NumberKind {
     }
 
     /// Parse a character from the given numberkind's radix
-    pub fn parse(&self, c: char) -> u64 {
-        //dbg!(c);
+    pub fn parse(&self, s: &str) -> Option<f64> {
         match self {
-            Self::Dec => c as u64 - '0' as u64,
-            Self::Hex => {
-                let c = c.to_ascii_lowercase();
-                if c >= 'a' {
-                    c as u64 - 'a' as u64 + 10
+            Self::Dec => s.parse().ok(),
+            _ => {
+                if let Some((whole, frac)) = s.split_once('.') {
+                    let radix = self.radix();
+                    let num = u64::from_str_radix(whole, radix).ok()? as f64;
+                    let mut frac = u64::from_str_radix(frac, radix).ok()? as f64;
+                    while frac >= 1.0 {
+                        frac /= radix as f64;
+                    }
+                    Some(num + frac)
                 } else {
-                    c as u64 - '0' as u64
+                    Some(u64::from_str_radix(s, self.radix()).ok()? as f64)
                 }
             }
-            Self::Bin => u64::from(c == '1'),
         }
     }
 
     /// Check if a char is a valid digit for this radix
     pub fn is_valid_digit(&self, c: char) -> bool {
-        c.is_digit(self.radix())
+        c == '.' || c.is_digit(self.radix())
     }
 }
 
@@ -190,7 +193,7 @@ impl Lexer {
         };
 
         let mut kind = NumberKind::Dec;
-        let mut number: f64 = 0.0;
+        let mut number = String::new();
 
         // Match the second char (might not be a digit if hex or bin)
         if let Some(c) = self.peek_char() {
@@ -202,12 +205,11 @@ impl Lexer {
                     'b' => {
                         kind = NumberKind::Bin;
                     }
-                    '0'..='9' => {
+                    '.' | '0'..='9' => {
                         // If we want octal support, add it here:
                         // kind = NumberKind::Oct;
-                        number += char_to_num(lead_digit);
-                        number *= kind.radix() as f64;
-                        number += kind.parse(c) as f64;
+                        number.push(lead_digit);
+                        number.push(c);
                     }
                     // End of number
                     _ => {
@@ -217,15 +219,14 @@ impl Lexer {
                 }
                 self.take_char();
             } else {
-                number += char_to_num(lead_digit);
+                number.push(lead_digit);
                 self.take_char();
                 if kind.is_valid_digit(c) {
                     //eprintln!("'{}' is valid", c);
-                    number *= kind.radix() as f64;
-                    number += kind.parse(c) as f64;
+                    number.push(c);
                 } else {
                     //eprintln!("returning {}", number);
-                    return Some((number, kind));
+                    return Some((kind.parse(&number)?, kind));
                 }
             }
         } else {
@@ -239,8 +240,7 @@ impl Lexer {
             if !kind.is_valid_digit(c) {
                 break;
             }
-            number *= kind.radix() as f64;
-            number += kind.parse(c) as f64;
+            number.push(c);
             digits += 1;
             self.index += 1;
         }
@@ -249,7 +249,7 @@ impl Lexer {
             None
         } else {
             self.index += 1;
-            Some((number, kind))
+            Some((kind.parse(&number)?, kind))
         }
     }
 
@@ -325,6 +325,11 @@ mod test {
 
         assert_eq!((n, kind), (123.0, NumberKind::Dec));
 
+        let mut lex = Lexer::new("123.5123");
+        let (n, kind) = lex.take_num().unwrap();
+
+        assert_eq!((n, kind), (123.5123, NumberKind::Dec));
+
         let mut lex = Lexer::new("0x123");
         let (n, kind) = lex.take_num().unwrap();
 
@@ -357,7 +362,24 @@ impl Iterator for Lexer {
             let prev_index = self.index;
             let (tok, kind) = match self.current_char() {
                 Some('+') => (None, Some(TokenKind::Plus)),
-                Some('-') => (None, Some(TokenKind::Minus)),
+                Some('-') => {
+                    if matches!(self.peek_char(), Some('.' | '0'..='9')) {
+                        self.take_char();
+                        if let Some(mut tok) = self.consume_number() {
+                            tok.kind = match tok.kind {
+                                TokenKind::Number(n, t) => TokenKind::Number(-n, t),
+                                _ => unreachable!(
+                                    "Self::consume_number should always return a number"
+                                ),
+                            };
+                            (Some(tok), None)
+                        } else {
+                            (None, Some(dbg!(TokenKind::Invalid)))
+                        }
+                    } else {
+                        (None, Some(TokenKind::Minus))
+                    }
+                }
                 Some('*') => {
                     if self.peek_char() == Some('*') {
                         self.take_char();
@@ -391,7 +413,7 @@ impl Iterator for Lexer {
                     continue;
                 }
 
-                Some('0'..='9') => {
+                Some('0'..='9' | '.') => {
                     if let Some(tok) = self.consume_number() {
                         (Some(tok), None)
                     } else {
