@@ -74,8 +74,8 @@ where
 
         match cli.output_format() {
             lexer::NumberKind::Dec => println!("{}", result),
-            lexer::NumberKind::Hex => println!("{}", result.to_string_radix::<16>()),
-            lexer::NumberKind::Bin => println!("{}", result.to_string_radix::<2>()),
+            lexer::NumberKind::Hex => println!("0x{}", result.to_string_radix::<16>()),
+            lexer::NumberKind::Bin => println!("0b{}", result.to_string_radix::<2>()),
         };
 
         if !cli.quiet {
