@@ -185,7 +185,7 @@ impl Lexer {
         };
 
         //eprintln!("lead digit: '{}'", c);
-        let lead_digit = if c.is_ascii_digit() {
+        let lead_digit = if c == '.' || c.is_ascii_digit() {
             c
         } else {
             //eprintln!("No lead digit");
