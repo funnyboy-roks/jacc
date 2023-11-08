@@ -5,8 +5,8 @@ pub trait ToStringRadix {
 impl ToStringRadix for f64 {
     fn to_string_radix<const N: u32>(mut self) -> String {
         let mut out = String::new();
-        if self < 0.0 {
-            out.push('-');
+        let neg = self < 0.0;
+        if neg {
             self = -self;
         }
         let mut whole = self as u32;
@@ -19,6 +19,23 @@ impl ToStringRadix for f64 {
                 whole /= N;
             }
         }
+
+        match N {
+            2 => {
+                out.insert(0, 'b');
+                out.insert(0, '0');
+            }
+            16 => {
+                out.insert(0, 'x');
+                out.insert(0, '0');
+            }
+            _ => {}
+        }
+
+        if neg {
+            out.insert(0, '-');
+        }
+
         let mut fract = self.fract();
         if fract != 0.0 {
             out.push('.');
